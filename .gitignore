@@ -1,0 +1,24 @@
+# Build output
+target/
+bin/
+
+# Secrets
+.env
+
+# Eclipse IDE
+.project
+.classpath
+.settings/
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache
+.metadata
+RemoteSystemsTempFiles/
+
+# Others
+*.class
+*.log
+tmp/
+HELP.md
+.mvn/wrapper/maven-wrapper.jar
