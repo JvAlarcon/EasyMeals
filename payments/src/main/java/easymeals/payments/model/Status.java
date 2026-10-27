@@ -4,7 +4,7 @@ public enum Status {
 
     CREATED(1, "CREATED"),
     CONFIRMED(2, "CONFIRMED"),
-    CANCELED(3, "CANCELED");
+    CANCELLED(3, "CANCELLED");
     
     private final int id;
     private final String description;

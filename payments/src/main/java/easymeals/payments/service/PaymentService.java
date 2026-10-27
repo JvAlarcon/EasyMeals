@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import easymeals.payments.model.PageResponse;
 import easymeals.payments.model.Payment;
+import easymeals.payments.model.Payment.NewPayment;
 import easymeals.payments.model.PaymentRequest;
 import easymeals.payments.model.Status;
 import easymeals.payments.repository.PaymentRepository;
@@ -40,7 +41,7 @@ public class PaymentService {
    
     @Transactional
     public Payment insertPayment(PaymentRequest request) {
-	    Payment payment = new Payment(null, request.amount(), request.name(), request.cardNumber(),
+	    NewPayment payment = new NewPayment(request.amount(), request.name(), request.cardNumber(),
 	        request.expiration(), request.cardSecurityCode(), Status.fromId(request.statusId()), request.orderId(), request.paymentFormId());
         return repository.insert(payment);
     }

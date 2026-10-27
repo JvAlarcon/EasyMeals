@@ -9,7 +9,7 @@ CREATE TABLE payment_status (
 INSERT INTO payment_status (description)
 VALUES ('CREATED'),
        ('CONFIRMED'),
-       ('CANCELED');
+       ('CANCELLED');
 
 CREATE TABLE payments (
   id SERIAL,

@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import easymeals.payments.model.Payment;
+import easymeals.payments.model.Payment.NewPayment;
 import easymeals.payments.model.Status;
 
 // This class uses JDBC strategy instead of JPA
@@ -78,7 +79,7 @@ public class PaymentRepository {
             .optional();
     }
     
-    public @NonNull Payment insert(Payment payment) {
+    public @NonNull Payment insert(NewPayment newPayment) {
         String query =
             """
             INSERT INTO payments
@@ -89,14 +90,14 @@ public class PaymentRepository {
                 card_security_code, status_id, order_id, payment_form_id
             """;
         return jdbc.sql(query)
-            .param("amount", payment.amount())
-            .param("name", payment.name())
-            .param("cardNumber", payment.cardNumber())
-            .param("expiration", payment.expiration())
-            .param("cardSecurityCode", payment.cardSecurityCode())
-            .param("statusId", payment.status().getId())
-            .param("orderId", payment.orderId())
-            .param("paymentFormId", payment.paymentFormId())
+            .param("amount", newPayment.amount())
+            .param("name", newPayment.name())
+            .param("cardNumber", newPayment.cardNumber())
+            .param("expiration", newPayment.expiration())
+            .param("cardSecurityCode", newPayment.cardSecurityCode())
+            .param("statusId", newPayment.status().getId())
+            .param("orderId", newPayment.orderId())
+            .param("paymentFormId", newPayment.paymentFormId())
             .query((rs, _) -> new Payment(
                 rs.getLong("id"),
                 BigInteger.valueOf(rs.getInt("amount")),
