@@ -11,8 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import easymeals.orders.model.Order;
 import easymeals.orders.model.Order.NewOrder;
 import easymeals.orders.model.Order.NewOrder.NewItem;
-import easymeals.orders.model.OrderRequest;
-import easymeals.orders.model.OrderRequest.ItemRequest;
+import easymeals.orders.model.OrderRequest.Create;
+import easymeals.orders.model.OrderRequest.Create.Item;
+import easymeals.orders.model.OrderRequest.TransitionStatus;
 import easymeals.orders.model.PageResponse;
 import easymeals.orders.model.Status;
 import easymeals.orders.repository.OrderRepository;
@@ -42,9 +43,9 @@ public class OrderService {
         return repository.findById(id);
     }
     
-    private List<NewItem> mapItemRequest(List<ItemRequest> items) {
+    private List<NewItem> mapItemRequest(List<Item> items) {
     	List<NewItem> newItems = new LinkedList<>();
-        for(ItemRequest item : items) {
+        for(Item item : items) {
             newItems.add(new NewItem(item.description(), item.quantity()));
         }
         
@@ -52,11 +53,17 @@ public class OrderService {
     }
     
     @Transactional
-    public Order insertOrder(OrderRequest request) {
+    public Order insertOrder(Create request) {
         NewOrder newOrder = new NewOrder(
-            Status.fromId(request.statusId()),
+            Status.PLACED,
             mapItemRequest(request.items()));
         
         return repository.insert(newOrder);
+    }
+    
+    @Transactional
+    public Optional<Order> transitionStatus(Long id, TransitionStatus request) {
+        Status status = request.status();
+        return repository.transitionStatus(id, status);
     }
 }

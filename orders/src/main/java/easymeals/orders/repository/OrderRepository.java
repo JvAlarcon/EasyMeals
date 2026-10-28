@@ -160,7 +160,7 @@ public class OrderRepository {
     
     private static Order toOrder(List<OrderRow> rows) {
         if(rows.isEmpty()) {
-            throw new IllegalStateException("Insert operation returned no rows!");
+            throw new IllegalStateException("Operation returned no rows!");
         }
         
         OrderRow first = rows.getFirst();
@@ -173,7 +173,7 @@ public class OrderRepository {
             rows.stream()
                 .map(r -> new Item(r.itemId(), r.description(), r.quantity()))
                 .toList()
-        );	
+        );
     }
 
     public @NonNull Order insert(NewOrder newOrder) {
@@ -222,5 +222,35 @@ public class OrderRepository {
 	    return toOrder(rows);
     }
     
-    
+    public Optional<Order> transitionStatus(Long id, Status status) {
+        String query =
+        """
+        WITH updated (
+          UPDATE orders
+          SET status_id = :statusId
+          WHERE id = :id
+          RETURNING id, created_at, updated_at, status_id
+        )
+        SELECT u.id AS order_id, u.created_at, u.updated_at, u.status_id,
+          i.id AS item_id, i.description, i.quantity
+        FROM updated INNER JOIN order_items ON u.id = i.order_id
+        ORDER BY u.id;
+        """;
+        
+        List<OrderRow> rows = jdbc.sql(query)
+            .param("statusId", status.getId())
+            .param("id", id)
+            .query((rs, _) -> new OrderRow(
+                rs.getLong("order_id"),
+	    	    rs.getObject("created_at", OffsetDateTime.class),
+	    	    rs.getObject("updated_at", OffsetDateTime.class),
+	    	    rs.getInt("status_id"),
+	    	    rs.getLong("item_id"),
+	    	    rs.getString("description"),
+	    	    rs.getInt("quantity")
+            ))
+            .list();
+        
+        return rows.isEmpty() ? Optional.empty() : Optional.of(toOrder(rows));
+    }
 }

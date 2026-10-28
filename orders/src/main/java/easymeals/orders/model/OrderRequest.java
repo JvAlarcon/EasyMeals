@@ -8,28 +8,34 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-public record OrderRequest (
+public final class OrderRequest {
+		
+    private OrderRequest() {}
     
-    @NotNull(message = "{order.status.required}")
-    Integer statusId,
-    
-    @NotEmpty(message = "{order.items.required}")
-    @Valid
-    List<ItemRequest> items
-) {
-    public OrderRequest {
-        if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("An order must have at least one item");
-        }
+    public record Create(
+        @NotEmpty(message = "{order.items.required}")
+        @Valid
+        List<Item> items
+    ) {
+        public Create {
+            if (items == null || items.isEmpty()) {
+                throw new IllegalArgumentException("An order must have at least one item");
+            }
         
-        items = List.copyOf(items);
+            items = List.copyOf(items);
+        }
+    
+        public record Item(
+            @NotBlank(message = "{order.items.description.required}")
+            String description,
+            
+            @NotNull(message = "{order.items.quantity.required}")
+            @Positive(message = "{order.items.quyantity.positive}")
+            Integer quantity) {}
     }
     
-    public record ItemRequest(
-        @NotBlank(message = "{order.items.description.required}")
-        String description,
-        
-        @NotNull(message = "{order.items.quantity.required}")
-        @Positive(message = "{order.items.quyantity.positive}")
-        Integer quantity) {} 
+    public record TransitionStatus(
+        @NotNull(message = "{order.status.required}")
+        Status status
+    ) {}
 }
