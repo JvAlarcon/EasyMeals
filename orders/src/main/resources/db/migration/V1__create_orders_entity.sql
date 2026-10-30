@@ -27,7 +27,7 @@ CREATE TABLE orders (
 CREATE TABLE order_items (
   id SERIAL,
   description TEXT NOT NULL,
-  quantity INTEGER NOT NULL ADD CONSTRAINT quantity_positive CHECK (quantity > 0),
+  quantity INTEGER NOT NULL CONSTRAINT quantity_positive CHECK (quantity > 0),
   order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   PRIMARY KEY(id)
 );
@@ -40,7 +40,7 @@ BEGIN
       USING ERRCODE = 'check_violation',
         CONSTRAINT = 'order_must_have_items',
 	TABLE = TG_TABLE_NAME,
-	DETAIL = format('order_id=%s', OLD.id),
+	DETAIL = format('order_id=%s', NEW.id),
 	HINT = 'Insert the order and its items in the same transaction.';
   END IF;
   RETURN NEW;
@@ -66,7 +66,7 @@ BEGIN
       USING ERRCODE = 'check_violation',
         CONSTRAINT = 'order_must_have_items',
 	TABLE = TG_TABLE_NAME,
-	DETAIL = format('order_id=%s', OLD.id),
+	DETAIL = format('order_id=%s', OLD.order_id),
 	HINT = 'Cant let an order without any items, the order should have at least one item';
   END IF;
   RETURN OLD;

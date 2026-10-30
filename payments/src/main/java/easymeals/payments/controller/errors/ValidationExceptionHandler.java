@@ -1,4 +1,4 @@
-package easymeals.orders.controller;
+package easymeals.payments.controller.errors;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,10 +14,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
+/**
+ * Handler for validation annotation
+ */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ValidationExceptionHandler {
-
+    
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleBody(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
@@ -25,8 +28,9 @@ public class ValidationExceptionHandler {
             .getFieldErrors()
             .forEach(e -> errors.putIfAbsent(e.getField(), e.getDefaultMessage()));
         
-        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        pd.setTitle("Validation failed");
+        String title = "Validation failed";
+        String detail = "The request body contains invalid or missing fields. See 'errors' for details.";
+        ProblemDetail pd = ProblemDetailHelper.build(HttpStatus.BAD_REQUEST, title, detail);
         pd.setProperty("errors", errors);
         return pd;
     }
@@ -36,13 +40,13 @@ public class ValidationExceptionHandler {
         Map<String, List<String>> errors = new LinkedHashMap<>();
         ex.getParameterValidationResults().forEach(result -> {
             String param = result.getMethodParameter().getParameterName();
-            result.getResolvableErrors().forEach(e -> 
-                errors.computeIfAbsent(param, _ -> new ArrayList<>())
-                .add(e.getDefaultMessage()));
+            result.getResolvableErrors().forEach(e ->
+                errors.computeIfAbsent(param, _ -> new ArrayList<>()).add(e.getDefaultMessage()));
         });
         
-        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        pd.setTitle("Validation failed");
+        String title = "Validation failed";
+        String detail = "One or more request parameters are invalid. See 'errors' for details.";
+        ProblemDetail pd = ProblemDetailHelper.build(HttpStatus.BAD_REQUEST, title, detail);
         pd.setProperty("errors", errors);
         return pd;
     }

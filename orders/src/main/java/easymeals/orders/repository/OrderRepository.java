@@ -37,6 +37,23 @@ public class OrderRepository {
         Integer quantity
     ) {}
     
+    private static Order toOrder(List<OrderRow> rows) {
+        if(rows.isEmpty()) {
+            throw new IllegalStateException("Operation returned no rows!");
+        }
+        
+        OrderRow first = rows.getFirst();
+        return new Order(
+            first.orderId(),
+            first.createdAt(),
+            first.updatedAt(),
+            Status.fromId(first.statusId()),
+            rows.stream()
+                .map(r -> new Item(r.itemId(), r.description(), r.quantity()))
+                .toList()
+        );
+    }
+    
     public long count() {
         String query = "SELECT COUNT(id) FROM orders";
         return jdbc.sql(query).query(Long.class).single();
@@ -53,11 +70,15 @@ public class OrderRepository {
             oi.id AS item_id,
             oi.description,
             oi.quantity
-        FROM orders o
+        FROM (
+            SELECT id, created_at, updated_at, status_id
+            FROM orders
+            ORDER BY id DESC
+            LIMIT :limit
+            OFFSET :offset
+        ) o
         INNER JOIN order_items oi ON o.id = oi.order_id
-        ORDER BY id DESC
-        LIMIT :limit
-        OFFSET :offset 
+        ORDER BY o.id DESC, oi.id
         """;
     
     List<OrderRow> rows = jdbc.sql(query)
@@ -86,22 +107,7 @@ public class OrderRepository {
     
     return groupedRows.values().stream()
         .map(orderRows -> {
-            OrderRow first = orderRows.get(0);
-            
-            List<Item> items = orderRows.stream()
-            .map(r -> new Item(
-                r.itemId(),
-                r.description(),
-                r.quantity()
-            ))
-            .toList();
-            
-            return new Order(
-                first.orderId(),
-                first.createdAt(),
-                first.updatedAt(),
-                Status.fromId(first.statusId()),
-                items);
+            return toOrder(orderRows);
         })
         .toList();
     }
@@ -119,7 +125,8 @@ public class OrderRepository {
             oi.quantity
         FROM orders o
         INNER JOIN order_items oi ON o.id = oi.order_id
-        WHERE order_id = :id
+        WHERE o.id = :id
+        ORDER BY oi.id
         """;
         
         List<OrderRow> rows = jdbc.sql(query)
@@ -139,59 +146,25 @@ public class OrderRepository {
             return Optional.empty();
         }
         
-        OrderRow firstRow = rows.get(0);
-        List<Item> items = rows.stream()
-            .map(row -> new Item(
-                row.itemId(),
-                row.description(),
-                row.quantity()
-            ))
-            .toList();
-        
-        Order order = new Order(
-            firstRow.orderId(),
-            firstRow.createdAt(),
-            firstRow.updatedAt(),
-            Status.fromId(firstRow.statusId()),
-            items);
-        
-        return Optional.of(order);
-    }
-    
-    private static Order toOrder(List<OrderRow> rows) {
-        if(rows.isEmpty()) {
-            throw new IllegalStateException("Operation returned no rows!");
-        }
-        
-        OrderRow first = rows.getFirst();
-        
-        return new Order(
-            first.itemId(),
-            first.createdAt(),
-            first.updatedAt(),
-            Status.fromId(first.statusId()),
-            rows.stream()
-                .map(r -> new Item(r.itemId(), r.description(), r.quantity()))
-                .toList()
-        );
+        return Optional.of(toOrder(rows));
     }
 
     public @NonNull Order insert(NewOrder newOrder) {
         String query =
 	    """
 	    WITH new_order AS (
-            INSERT INTO order (status_id)
+            INSERT INTO orders (status_id)
             VALUES (:statusId)
-            RETURNING id, created_at, updated_at, statud_id	   
+            RETURNING id, created_at, updated_at, status_id	   
         ),
         new_order_items AS (
-            INSERT INTO order_item (description, quantity, order_id)
+            INSERT INTO order_items (description, quantity, order_id)
             SELECT t.description, t.quantity, (SELECT id FROM new_order)
             FROM unnest(:descriptions::text[], :quantities::int[]) AS t(description, quantity)
             RETURNING id, description, quantity, order_id
         )
         SELECT o.id AS order_id, o.created_at, o.updated_at, o.status_id,
-            oi.id AS order_item_id, oi.description, oi.quantity
+            oi.id AS item_id, oi.description, oi.quantity
         FROM new_order o
         INNER JOIN new_order_items oi ON o.id = oi.order_id
         ORDER by oi.id;
@@ -225,7 +198,7 @@ public class OrderRepository {
     public Optional<Order> transitionStatus(Long id, Status status) {
         String query =
         """
-        WITH updated (
+        WITH updated AS (
           UPDATE orders
           SET status_id = :statusId
           WHERE id = :id
@@ -233,8 +206,8 @@ public class OrderRepository {
         )
         SELECT u.id AS order_id, u.created_at, u.updated_at, u.status_id,
           i.id AS item_id, i.description, i.quantity
-        FROM updated INNER JOIN order_items ON u.id = i.order_id
-        ORDER BY u.id;
+        FROM updated u INNER JOIN order_items i ON u.id = i.order_id
+        ORDER BY i.id;
         """;
         
         List<OrderRow> rows = jdbc.sql(query)

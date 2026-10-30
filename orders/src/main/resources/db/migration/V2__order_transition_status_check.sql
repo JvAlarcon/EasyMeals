@@ -15,7 +15,7 @@ CREATE TABLE order_status_transition (
 -- Shipped -> Delivered
 -- Any other transition is not allowed
 INSERT INTO order_status_transition (from_status_id, to_status_id) VALUES
-  (1, 2), (1, 3), (1, 4)
+  (1, 2), (1, 3), (1, 4),
   (3, 5), (3, 2),
   (5, 6), (5, 2),
   (6, 7),
@@ -32,11 +32,11 @@ BEGIN
       AND to_status_id = NEW.status_id)
   THEN
     SELECT description FROM order_status
-    WHERE status_id = OLD.status_id
+    WHERE id = OLD.status_id
     INTO from_description;
 
     SELECT description FROM order_status
-    WHERE status_id = NEW.status_id
+    WHERE id = NEW.status_id
     INTO to_description;
 
     RAISE EXCEPTION 'Invalid order status transition: from % (%) to % (%)',
